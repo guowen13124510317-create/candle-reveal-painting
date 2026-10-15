@@ -1,0 +1,89 @@
+<html style="margin:0;padding:0;">
+<meta charset="UTF-8">
+<title>烛光·古画 装置系统原理图</title>
+<div style="font-family:'Noto Serif SC','Songti SC',SimSun,serif;background:#0b0d13;color:#e8e2d8;padding:28px 22px;max-width:1000px;margin:0 auto;">
+  <div style="text-align:center;margin-bottom:6px;">
+    <div style="font-size:26px;letter-spacing:8px;color:#ffe0ae;">烛光 · 古画</div>
+    <div style="font-size:13px;letter-spacing:3px;color:#8a8578;margin-top:6px;">新媒体艺术装置 · 系统原理</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:22px 0 6px;">
+
+    <div style="flex:1;min-width:250px;background:linear-gradient(160deg,rgba(255,184,77,.10),rgba(20,24,32,.9));border:1px solid rgba(255,184,77,.45);border-radius:12px;padding:14px 16px;">
+      <div style="font-size:12px;color:#ffb84d;letter-spacing:2px;">第 1 步 · 感知</div>
+      <div style="font-size:18px;margin:4px 0 8px;">摄像头识别烛火</div>
+      <div style="font-size:13px;color:#b8b09e;line-height:1.8;">
+        在画面中寻找<b style="color:#e8d5b0;">又亮又暖</b>的光斑<br>
+        条件：亮度高 + 色温偏暖（R−B 大）<br>
+        支持 1~2 支蜡烛，排除白灯干扰
+      </div>
+    </div>
+
+    <div style="flex:0 0 auto;align-self:center;padding:0 6px;color:#ffb84d;font-size:24px;">→</div>
+
+    <div style="flex:1;min-width:250px;background:linear-gradient(160deg,rgba(255,184,77,.10),rgba(20,24,32,.9));border:1px solid rgba(255,184,77,.45);border-radius:12px;padding:14px 16px;">
+      <div style="font-size:12px;color:#ffb84d;letter-spacing:2px;">第 2 步 · 映射</div>
+      <div style="font-size:18px;margin:4px 0 8px;">烛火坐标 → 屏幕坐标</div>
+      <div style="font-size:13px;color:#b8b09e;line-height:1.8;">
+        一次<b style="color:#e8d5b0;">标定</b>即可对齐：<br>
+        镜像翻转 · X/Y 偏移 · 坐标缩放<br>
+        平滑跟踪，光斑不抖动
+      </div>
+    </div>
+
+    <div style="flex:0 0 auto;align-self:center;padding:0 6px;color:#ffb84d;font-size:24px;">→</div>
+
+    <div style="flex:1;min-width:250px;background:linear-gradient(160deg,rgba(255,184,77,.10),rgba(20,24,32,.9));border:1px solid rgba(255,184,77,.45);border-radius:12px;padding:14px 16px;">
+      <div style="font-size:12px;color:#ffb84d;letter-spacing:2px;">第 3 步 · 呈现</div>
+      <div style="font-size:18px;margin:4px 0 8px;">烛光点亮古画</div>
+      <div style="font-size:13px;color:#b8b09e;line-height:1.8;">
+        古画平时保持<b style="color:#e8d5b0;">昏暗</b><br>
+        在烛光位置叠加热色<b>光斑</b>，光斑内古画<b style="color:#e8d5b0;">完整显现</b><br>
+        附烛火闪烁 · 光尘浮动 · 暗角
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;margin:14px 0 20px;font-size:13px;color:#cfc8b8;text-align:center;">
+    <div>烛火<b style="color:#ffd9a0;">离屏幕越近</b> → 画面里的光斑<b style="color:#ffd9a0;">越大越亮</b> → 古画<b style="color:#ffd9a0;">越清晰</b></div>
+    <div style="color:#6f6a5f;">＝ “一人持烛走近，画作显现”</div>
+  </div>
+
+  <svg viewBox="0 0 1000 330" style="width:100%;display:block;margin:0 auto;">
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L8,3 L0,6 Z" fill="#ffb84d"/>
+      </marker>
+    </defs>
+    <rect x="250" y="18" width="500" height="118" rx="8" fill="#151a24" stroke="#ffb84d" stroke-opacity=".55"/>
+    <text x="500" y="52" text-anchor="middle" font-size="16" fill="#ffe0ae" letter-spacing="4">屏 幕 / 投影幕</text>
+    <text x="500" y="76" text-anchor="middle" font-size="12.5" fill="#8a8578">平时昏暗 · 烛光一照就亮（放映古画）</text>
+    <ellipse cx="500" cy="104" rx="30" ry="30" fill="none" stroke="#ffb84d" stroke-width="1.2" stroke-opacity=".8"/>
+    <ellipse cx="500" cy="104" rx="46" ry="46" fill="none" stroke="#ffb84d" stroke-width="1" stroke-opacity=".4"/>
+    <text x="500" y="108" text-anchor="middle" font-size="12" fill="#ffd9a0">烛光显现区</text>
+
+    <rect x="452" y="150" width="96" height="40" rx="10" fill="#1d222e" stroke="#6f8578" stroke-width="1.2"/>
+    <text x="500" y="174" text-anchor="middle" font-size="13" fill="#b8c9b8">摄像头</text>
+    <line x1="500" y1="190" x2="500" y2="236" stroke="#6f8578" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#ar)"/>
+    <text x="520" y="220" font-size="11.5" fill="#6f8578">朝观众区拍摄</text>
+
+    <rect x="220" y="250" width="560" height="58" rx="6" fill="#141820" stroke="#3a4152" stroke-width="1.2"/>
+    <text x="500" y="272" text-anchor="middle" font-size="13" fill="#cfc8b8" letter-spacing="2">观 众 走 道</text>
+    <text x="500" y="294" text-anchor="middle" font-size="11.5" fill="#6f6a5f">观众手持蜡烛，从远处走近屏幕</text>
+
+    <ellipse cx="250" cy="296" rx="18" ry="24" fill="#0f1220" stroke="#8a8578" stroke-width="1.2"/>
+    <line x1="236" y1="278" x2="214" y2="246" stroke="#8a8578" stroke-width="1.6"/>
+    <line x1="264" y1="278" x2="286" y2="246" stroke="#8a8578" stroke-width="1.6"/>
+    <circle cx="250" cy="270" r="9" fill="#0f1220" stroke="#8a8578" stroke-width="1.2"/>
+    <text x="250" y="322" text-anchor="middle" font-size="11.5" fill="#8a8578">观众（持烛走近）</text>
+    <circle cx="214" cy="244" r="7" fill="#ffb84d"/>
+    <circle cx="214" cy="244" r="12" fill="none" stroke="#ffb84d" stroke-opacity=".5"/>
+    <text x="196" y="238" font-size="11" fill="#ffd9a0">烛火</text>
+
+    <line x1="286" y1="246" x2="500" y2="118" stroke="#ffb84d" stroke-width="1.6" stroke-opacity=".55" stroke-dasharray="3 6" marker-end="url(#ar)"/>
+    <text x="360" y="150" font-size="11.5" fill="#ffb84d" fill-opacity=".75">烛火位置 → 屏幕坐标（标定映射）</text>
+  </svg>
+
+  <div style="text-align:center;font-size:11.5px;color:#6f6a5f;margin-top:12px;">示意图 · 实际以现场布置为准（摄像头尽量不拍到屏幕本身，避免屏幕光干扰识别）</div>
+</div>
+</html>

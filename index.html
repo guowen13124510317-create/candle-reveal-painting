@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>烛光 · 古画 — 新媒体艺术装置</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23101418'/%3E%3Cellipse cx='32' cy='30' rx='7' ry='13' fill='%23FFB84D'/%3E%3Cellipse cx='32' cy='24' rx='4' ry='7' fill='%23FFF3D6'/%3E%3C/svg%3E">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05060a; }
+  body { font-family: "Noto Serif SC", "Songti SC", "SimSun", serif; color: #e8e2d8; }
+  #app { position: fixed; inset: 0; }
+  #stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: #000; }
+  #topbar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 10px 18px;
+    background: linear-gradient(180deg, rgba(5,6,10,.85), rgba(5,6,10,0));
+    font-size: 13px; user-select: none;
+  }
+  #topbar .brand { font-size: 17px; letter-spacing: 4px; color: #f5e9d0; }
+  #topbar .brand small { display: block; font-size: 10px; letter-spacing: 2px; color: #8a8578; margin-top: 1px; }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btns button {
+    border: 1px solid rgba(232,226,216,.25); background: rgba(20,22,28,.55);
+    color: #d8d2c4; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    font-size: 12px; font-family: inherit; transition: all .2s;
+  }
+  .btns button:hover { background: rgba(255,184,77,.15); border-color: rgba(255,184,77,.5); color: #ffd9a0; }
+  .btns button.active { background: rgba(255,184,77,.22); border-color: #ffb84d; color: #ffe6bd; }
+  #status { margin-left: auto; font-size: 12px; color: #b8b09e; letter-spacing: 1px; }
+  #status .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #555; margin-right: 6px; vertical-align: 1px; }
+  #status .dot.on { background: #ffb84d; box-shadow: 0 0 8px #ffb84d; }
+  #panel {
+    position: absolute; right: 16px; top: 58px; bottom: 16px; z-index: 30;
+    width: 340px; padding: 14px 16px; overflow-y: auto;
+    background: rgba(12,14,20,.92); border: 1px solid rgba(232,226,216,.15);
+    border-radius: 12px; font-size: 12px; color: #cfc8b8;
+  }
+  #panel h3 { font-size: 14px; color: #ffe0ae; margin-bottom: 10px; letter-spacing: 2px; }
+  #panel .row { margin: 8px 0; }
+  #panel .row label { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  #panel .row input[type=range] { width: 100%; accent-color: #ffb84d; }
+  #panel .row input[type=checkbox] { accent-color: #ffb84d; width: 16px; height: 16px; }
+  #camView { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 8px; margin: 10px 0; }
+  #camNote { color: #8a8578; line-height: 1.7; }
+  #panel .actions { display: flex; gap: 8px; margin-top: 12px; }
+  #panel .actions button {
+    flex: 1; border: 1px solid rgba(232,226,216,.3); background: rgba(255,184,77,.12);
+    color: #ffe6bd; padding: 8px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px;
+  }
+  #panel .actions button:hover { background: rgba(255,184,77,.25); }
+  #gear {
+    position: absolute; right: 12px; bottom: 12px; z-index: 25; display: none;
+    width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(232,226,216,.3);
+    background: rgba(12,14,20,.6); color: #cfc8b8; cursor: pointer; font-size: 15px; line-height: 28px; text-align: center;
+  }
+  body.install #topbar { display: none; }
+  body.install #panel { display: none; }
+  body.install #gear { display: block; }
+  #hint {
+    position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); z-index: 20;
+    color: rgba(232,226,216,.55); font-size: 12px; letter-spacing: 2px; text-align: center; pointer-events: none;
+    text-shadow: 0 1px 6px rgba(0,0,0,.8);
+  }
+  body.install #hint { display: none; }
+  @media (max-width: 720px) {
+    #panel { width: 100%; right: 0; left: 0; top: auto; bottom: 0; max-height: 55%; border-radius: 12px 12px 0 0; }
+    #topbar { padding: 8px 12px; }
+    #status { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="stage"></canvas>
+
+  <div id="topbar">
+    <div class="brand">烛光 · 古画<small>新媒体艺术装置 · 烛光显现古画</small></div>
+    <div class="btns">
+      <button id="btnAuto" class="active">自动演示</button>
+      <button id="btnDemo">演示模式（鼠标=蜡烛）</button>
+      <button id="btnCam">摄像头模式（真实蜡烛）</button>
+      <button id="btnSetup">标定设置</button>
+      <button id="btnInstall">安装模式</button>
+    </div>
+    <div id="status"><span class="dot"></span><span id="statusText">加载中…</span></div>
+  </div>
+
+  <div id="hint">点击上方按钮切换模式 · 演示模式下移动鼠标模拟烛光 · 按 S 打开标定 · 按 I 进入安装模式</div>
+
+  <div id="panel" style="display:none">
+    <h3>标定设置</h3>
+    <canvas id="camView" width="320" height="180"></canvas>
+    <div id="camNote">摄像头画面中，橙色十字即识别到的烛火位置。把屏幕坐标系和烛火位置对好，保存设置。</div>
+    <div class="row"><label><span>亮度阈值</span><span id="v_threshold">200</span></label><input type="range" id="threshold" min="100" max="255" step="1"></div>
+    <div class="row"><label><span>暖色阈值</span><span id="v_warmThreshold">25</span></label><input type="range" id="warmThreshold" min="0" max="120" step="1"></div>
+    <div class="row"><label><span>平滑度</span><span id="v_smooth">0.35</span></label><input type="range" id="smooth" min="0.05" max="0.9" step="0.01"></div>
+    <div class="row"><label><span>光照半径</span><span id="v_radius">0.22</span></label><input type="range" id="radius" min="0.05" max="0.6" step="0.01"></div>
+    <div class="row"><label><span>光照强度</span><span id="v_intensity">1.00</span></label><input type="range" id="intensity" min="0.3" max="2" step="0.05"></div>
+    <div class="row"><label><span>背景暗度</span><span id="v_baseDim">0.13</span></label><input type="range" id="baseDim" min="0.05" max="0.6" step="0.01"></div>
+    <div class="row"><label><span>X 偏移</span><span id="v_offsetX">0.00</span></label><input type="range" id="offsetX" min="-0.5" max="0.5" step="0.01"></div>
+    <div class="row"><label><span>Y 偏移</span><span id="v_offsetY">0.00</span></label><input type="range" id="offsetY" min="-0.5" max="0.5" step="0.01"></div>
+    <div class="row"><label><span>坐标缩放</span><span id="v_scale">1.00</span></label><input type="range" id="scale" min="0.3" max="2.5" step="0.05"></div>
+    <div class="row"><label><span>镜像画面</span></label><input type="checkbox" id="mirror" checked></div>
+    <div class="actions">
+      <button id="btnSave">保存设置</button>
+      <button id="btnReset">恢复默认</button>
+      <button id="btnClose">关闭</button>
+    </div>
+  </div>
+
+  <button id="gear" title="返回设置">⚙</button>
+
+  <img id="paintingSrc" src="assets/painting.jpg" alt="" style="display:none">
+</div>
+
+<script>
+'use strict';
+/* 烛光 · 古画 — 新媒体艺术装置：摄像头识别烛火 → 映射到屏幕坐标 → 屏幕古画在烛光位置变亮显现 */
+
+/* ---------------- 配置 ---------------- */
+const DEFAULTS = {
+  threshold: 200,      // 烛火亮度阈值（0-255，越高越严格）
+  warmThreshold: 25,   // 暖色阈值（R-B 差值，滤掉白色灯光）
+  smooth: 0.35,        // 跟踪平滑度（越小越稳、越大越跟手）
+  radius: 0.22,        // 光照半径（相对屏幕宽度）
+  intensity: 1.0,      // 光照强度倍率
+  baseDim: 0.13,       // 无烛光时古画的暗度（越小越暗）
+  offsetX: 0, offsetY: 0, scale: 1.0, // 坐标标定
+  mirror: true,        // 摄像头画面是否镜像
+  particles: 40,       // 光尘粒子数量
+};
+
+let cfg = Object.assign({}, DEFAULTS);
+try {
+  const saved = JSON.parse(localStorage.getItem('candle-painting-cfg') || '{}');
+  Object.assign(cfg, saved);
+} catch (e) { /* 忽略读取失败 */ }
+
+/* ---------------- 状态 ---------------- */
+let mode = 'auto';                    // auto | demo | cam | install
+let lights = [];                      // 平滑后的光源 [{x,y,intensity,radius}]
+let mouseLight = null;                // 演示模式下的鼠标光源
+let autoT = 0;                        // 自动演示进度 0..1
+let autoLoop = true;
+const urlParams = new URLSearchParams(location.search);
+if (urlParams.get('mode')) mode = urlParams.get('mode');
+if (urlParams.get('t') !== null) { autoT = clamp(parseFloat(urlParams.get('t')), 0, 1); autoLoop = false; }
+if (urlParams.get('autodemo') !== null) mode = 'auto';
+
+const stage = document.getElementById('stage');
+const ctx = stage.getContext('2d');
+const paintingSrc = document.getElementById('paintingSrc');
+const statusText = document.getElementById('statusText');
+const statusDot = document.querySelector('#status .dot');
+
+let W = 0, H = 0, DPR = 1;
+let paintingImg = null;               // 加载完成的古画
+let revealCanvas = null, rctx = null; // 光照显现离屏画布
+let vignette = null;                  // 暗角离屏画布
+let particles = [];
+
+/* ---------------- 小工具 ---------------- */
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeInOut(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2; }
+function fmt(v, d) { return v.toFixed(d); }
+
+/* ---------------- 画布尺寸 ---------------- */
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  stage.width = Math.round(W * DPR);
+  stage.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  revealCanvas = document.createElement('canvas');
+  revealCanvas.width = stage.width; revealCanvas.height = stage.height;
+  rctx = revealCanvas.getContext('2d');
+  rctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  buildVignette();
+}
+window.addEventListener('resize', resize);
+
+/* ---------------- 暗角 ---------------- */
+function buildVignette() {
+  vignette = document.createElement('canvas');
+  vignette.width = stage.width; vignette.height = stage.height;
+  const v = vignette.getContext('2d');
+  v.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g = v.createRadialGradient(W/2, H/2, Math.min(W,H)*0.35, W/2, H/2, Math.max(W,H)*0.75);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.55)');
+  v.fillStyle = g; v.fillRect(0, 0, W, H);
+}
+
+/* ---------------- 古画加载 ---------------- */
+function paintingTransform() {
+  // cover 适配：铺满屏幕并保留横向缓慢漂移（呼吸感）
+  const iw = paintingImg.width, ih = paintingImg.height;
+  const scale = Math.max(W / iw, H / ih);
+  let dw = iw * scale, dh = ih * scale;
+  const maxDrift = Math.max(0, dw - W);
+  const drift = maxDrift * (0.5 + 0.5 * Math.sin(Date.now() / 60000));
+  return { dx: -drift, dy: (H - dh) / 2, dw, dh };
+}
+
+function drawPainting(c) {
+  const t = paintingTransform();
+  c.drawImage(paintingImg, t.dx, t.dy, t.dw, t.dh);
+}
+
+/* 古画加载失败时绘制一幅程序生成的山水画作为兜底，保证演示不断 */
+function drawProceduralFallback() {
+  const c = document.createElement('canvas');
+  c.width = 1568; c.height = 668;
+  const g = c.getContext('2d');
+  g.fillStyle = '#d8c9a3'; g.fillRect(0, 0, c.width, c.height);
+  for (let i = 0; i < 6; i++) {
+    g.beginPath();
+    g.fillStyle = 'rgba(90,120,110,' + (0.25 + i * 0.08) + ')';
+    g.moveTo(0, 480);
+    for (let x = 0; x <= c.width; x += 20) {
+      g.lineTo(x, 480 - 40 - Math.abs(Math.sin(x / 90 + i * 1.7)) * (90 + i * 26));
+    }
+    g.lineTo(c.width, c.height); g.lineTo(0, c.height);
+    g.fill();
+  }
+  g.beginPath(); g.fillStyle = '#3c6b57';
+  g.moveTo(0, 620);
+  for (let x = 0; x <= c.width; x += 16) {
+    g.lineTo(x, 620 - 150 - Math.abs(Math.sin(x / 55)) * 130);
+  }
+  g.lineTo(c.width, c.height); g.lineTo(0, c.height); g.fill();
+  g.fillStyle = 'rgba(214,202,168,0.75)';
+  g.fillRect(0, 470, c.width, 60);
+  g.fillStyle = 'rgba(160,180,160,0.5)';
+  g.fillRect(0, 500, c.width, 168);
+  return c;
+}
+
+/* ---------------- 光源渲染 ---------------- */
+function drawOneLight(p) {
+  const R = Math.max(30, p.radius * W * (0.92 + 0.16 * Math.sin(Date.now() / 137) + 0.05 * Math.sin(Date.now() / 61)));
+  const I = clamp(p.intensity * cfg.intensity, 0, 1.3);
+  rctx.clearRect(0, 0, W, H);
+  drawPainting(rctx);
+  rctx.globalCompositeOperation = 'destination-in';
+  const g = rctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.62, 'rgba(255,255,255,' + fmt(0.5 * I, 3) + ')');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  rctx.fillStyle = g;
+  rctx.fillRect(0, 0, W, H);
+  rctx.globalCompositeOperation = 'source-over';
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(revealCanvas, 0, 0, W, H);
+  const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R * 1.7);
+  glow.addColorStop(0, 'rgba(255,190,110,' + fmt(0.16 * I, 3) + ')');
+  glow.addColorStop(0.55, 'rgba(255,180,100,' + fmt(0.05 * I, 3) + ')');
+  glow.addColorStop(1, 'rgba(255,180,100,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* 演示/自动模式下的蜡烛标记（真实模式下不需要画） */
+function drawCandleMarker(p) {
+  const fl = 6 + 3 * Math.sin(Date.now() / 90);
+  const g = ctx.createRadialGradient(p.x, p.y - fl * 0.6, 0, p.x, p.y - fl * 0.6, fl * 2.2);
+  g.addColorStop(0, 'rgba(255,244,214,0.95)');
+  g.addColorStop(0.35, 'rgba(255,190,90,0.75)');
+  g.addColorStop(1, 'rgba(255,150,50,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(p.x, p.y - fl * 0.6, fl * 2.2, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(240,225,190,0.9)';
+  ctx.fillRect(p.x - 3, p.y - fl * 0.4, 6, 13);
+  ctx.fillStyle = 'rgba(160,140,110,0.9)';
+  ctx.fillRect(p.x - 8, p.y + 13, 16, 4);
+}
+
+/* ---------------- 粒子光尘 ---------------- */
+function updateParticles(dt) {
+  if (lights.length) {
+    while (particles.length < cfg.particles) {
+      const s = lights[(Math.random() * lights.length) | 0];
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.random() * Math.min(W, H) * 0.25;
+      particles.push({
+        x: s.x + Math.cos(a) * r, y: s.y + Math.sin(a) * r,
+        vx: (Math.random() - 0.5) * 14, vy: -(4 + Math.random() * 14),
+        life: 1, decay: 0.4 + Math.random() * 0.6, r: 0.8 + Math.random() * 1.8,
+      });
+    }
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt * p.decay;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= (1 - dt * 0.5);
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    ctx.fillStyle = 'rgba(255,205,140,' + fmt(0.35 * p.life, 3) + ')';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ---------------- 主渲染循环 ---------------- */
+let lastFrame = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+  if (mode === 'auto') {
+    const l = autoDemoLight();
+    lights = l ? [l] : [];
+  } else if (mode === 'demo') {
+    lights = mouseLight ? [{
+      x: mouseLight.x, y: mouseLight.y,
+      intensity: 0.9 + 0.1 * Math.sin(now / 300),
+      radius: cfg.radius * (1 + 0.06 * Math.sin(now / 240)),
+    }] : [];
+  } else if (mode === 'cam') {
+    // lights 由检测循环更新
+  } else {
+    lights = [];
+  }
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1;
+  drawPainting(ctx);
+  ctx.fillStyle = 'rgba(6,10,30,' + fmt(1 - cfg.baseDim * 0.75, 3) + ')';
+  ctx.fillRect(0, 0, W, H);
+  for (const p of lights) drawOneLight(p);
+  if (cfg.particles > 0) updateParticles(dt);
+  if ((mode === 'auto' || mode === 'demo') && lights.length) drawCandleMarker(lights[0]);
+  ctx.drawImage(vignette, 0, 0, W, H);
+  requestAnimationFrame(frame);
+}
+
+/* 自动演示叙事：t 0.00-0.12 无烛光（昏暗）；0.12-0.82 持烛走近、光随接近变亮；0.82-1.00 古画清晰显现 */
+function autoDemoLight() {
+  const t = autoT;
+  if (t < 0.12) return null;
+  const tt = easeInOut(clamp((t - 0.12) / 0.7, 0, 1));
+  const x = lerp(W * 0.16, W * 0.55, tt);
+  const y = lerp(H * 0.92, H * 0.52, tt);
+  const intensity = lerp(0.2, 1.0, tt) * (1 + 0.06 * Math.sin(Date.now() / 160));
+  const radius = lerp(0.05, cfg.radius, tt);
+  return { x, y, intensity, radius };
+}
+
+function autoAdvance() {
+  if (!autoLoop) return;
+  autoT += 0.0035;
+  if (autoT > 1) autoT = 0;
+}
+setInterval(autoAdvance, 40);
+
+/* 演示模式：鼠标/触摸 */
+stage.addEventListener('mousemove', e => {
+  mouseLight = { x: e.clientX, y: e.clientY };
+});
+stage.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  mouseLight = { x: t.clientX, y: t.clientY };
+  e.preventDefault();
+}, { passive: false });
+
+/* ---------------- 摄像头模式：烛火检测 ---------------- */
+const detCanvas = document.createElement('canvas');
+const detCtx = detCanvas.getContext('2d', { willReadFrequently: true });
+const detW = 160;
+let video = null, camReady = false, camError = null;
+
+const camView = document.getElementById('camView');
+const camViewCtx = camView.getContext('2d');
+
+async function startCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    camError = '当前环境不支持摄像头（需要 http://localhost 或 https）';
+    return;
+  }
+  try {
+    video = document.createElement('video');
+    video.setAttribute('playsinline', '');
+    video.muted = true;
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 640 }, height: { ideal: 360 }, facingMode: 'user' },
+      audio: false,
+    });
+    video.srcObject = stream;
+    await video.play();
+    camReady = true; camError = null;
+  } catch (e) {
+    camError = '无法打开摄像头：' + (e && e.message ? e.message : '权限被拒绝');
+  }
+}
+
+/* 连通域标记：找到画面中最亮的暖色光斑（烛火） */
+function detectFlames() {
+  if (!camReady || !video || !video.videoWidth) return [];
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const dh = Math.max(1, Math.round(detW * vh / vw));
+  detCanvas.width = detW; detCanvas.height = dh;
+  detCtx.drawImage(video, 0, 0, detW, dh);
+  const img = detCtx.getImageData(0, 0, detW, dh);
+  const data = img.data;
+  const n = detW * dh;
+  const label = new Int32Array(n).fill(-1);
+
+  const comps = [];
+  let cur = 0;
+  function isFlame(idx, d) {
+    const r = d[idx * 4], g = d[idx * 4 + 1], b = d[idx * 4 + 2];
+    return (0.299 * r + 0.587 * g + 0.114 * b) >= cfg.threshold && (r - b) >= cfg.warmThreshold;
+  }
+  for (let p = 0; p < n; p++) {
+    const r = data[p * 4], g = data[p * 4 + 1], b = data[p * 4 + 2];
+    const bright = 0.299 * r + 0.587 * g + 0.114 * b;
+    const warm = r - b;
+    if (bright < cfg.threshold || warm < cfg.warmThreshold || label[p] !== -1) continue;
+    const stack = [p];
+    label[p] = cur;
+    let area = 0, sx = 0, sy = 0, maxB = 0;
+    while (stack.length) {
+      const q = stack.pop();
+      const x = q % detW, y = (q / detW) | 0;
+      area++; sx += x; sy += y;
+      const qr = data[q * 4], qg = data[q * 4 + 1], qb = data[q * 4 + 2];
+      const qbri = 0.299 * qr + 0.587 * qg + 0.114 * qb;
+      if (qbri > maxB) maxB = qbri;
+      if (x > 0 && label[q - 1] === -1 && isFlame(q - 1, data)) { label[q - 1] = cur; stack.push(q - 1); }
+      if (x < detW - 1 && label[q + 1] === -1 && isFlame(q + 1, data)) { label[q + 1] = cur; stack.push(q + 1); }
+      if (y > 0 && label[q - detW] === -1 && isFlame(q - detW, data)) { label[q - detW] = cur; stack.push(q - detW); }
+      if (y < dh - 1 && label[q + detW] === -1 && isFlame(q + detW, data)) { label[q + detW] = cur; stack.push(q + detW); }
+    }
+    if (area >= 3) {
+      comps.push({ cx: sx / area, cy: sy / area, area, maxB });
+    }
+    cur++;
+  }
+  comps.sort((a, b) => b.area - a.area);
+  return comps.slice(0, 2);
+}
+
+/* 把检测到的烛火映射到屏幕坐标，并做平滑跟踪 */
+function mapLights(flames) {
+  const next = [];
+  for (const f of flames) {
+    let nx = cfg.mirror ? (1 - f.cx / detW) : (f.cx / detW);
+    let ny = f.cy / detCanvas.height;
+    nx = nx * cfg.scale + cfg.offsetX;
+    ny = ny * cfg.scale + cfg.offsetY;
+    const intensity = clamp(0.35 + f.area / 320, 0.1, 1.3);
+    const radius = cfg.radius * (1 + 0.05 * Math.sin(Date.now() / 130));
+    next.push({ x: nx * W, y: ny * H, intensity, radius });
+  }
+  const out = [];
+  for (const n of next) {
+    let best = null, bestD = Infinity;
+    for (const o of lights) {
+      const d = Math.hypot(n.x - o.x, n.y - o.y);
+      if (d < bestD) { bestD = d; best = o; }
+    }
+    if (best && bestD < Math.min(W, H) * 0.3) {
+      out.push({ x: lerp(best.x, n.x, 1 - cfg.smooth), y: lerp(best.y, n.y, 1 - cfg.smooth), intensity: n.intensity, radius: n.radius });
+    } else {
+      out.push(n);
+    }
+  }
+  return out;
+}
+
+function detectLoop() {
+  if (mode === 'cam') {
+    const flames = detectFlames();
+    lights = mapLights(flames);
+    drawCamView(flames);
+    if (flames.length) setStatus('检测到 ' + flames.length + ' 支烛光', true);
+    else setStatus('未检测到烛光（调整阈值或靠近屏幕）', false);
+  }
+  requestAnimationFrame(detectLoop);
+}
+
+function drawCamView(flames) {
+  if (!camReady || !video || !video.videoWidth) return;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const cw = camView.width, ch = camView.height;
+  camViewCtx.clearRect(0, 0, cw, ch);
+  const s = Math.min(cw / vw, ch / vh);
+  const dw = vw * s, dh = vh * s, dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+  if (cfg.mirror) { camViewCtx.save(); camViewCtx.translate(cw, 0); camViewCtx.scale(-1, 1); }
+  camViewCtx.drawImage(video, dx, dy, dw, dh);
+  if (cfg.mirror) camViewCtx.restore();
+  camViewCtx.strokeStyle = '#ffb84d'; camViewCtx.lineWidth = 2;
+  for (const f of flames) {
+    const px = cfg.mirror ? (cw - (f.cx / detW) * dw - dx) : (f.cx / detW) * dw + dx;
+    const py = (f.cy / detCanvas.height) * dh + dy;
+    camViewCtx.beginPath(); camViewCtx.arc(px, py, 6, 0, 7); camViewCtx.stroke();
+    camViewCtx.beginPath();
+    camViewCtx.moveTo(px - 10, py); camViewCtx.lineTo(px + 10, py);
+    camViewCtx.moveTo(px, py - 10); camViewCtx.lineTo(px, py + 10);
+    camViewCtx.stroke();
+  }
+}
+
+/* ---------------- 界面状态 ---------------- */
+function setStatus(text, on) {
+  statusText.textContent = text;
+  statusDot.classList.toggle('on', !!on);
+}
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.btns button').forEach(b => b.classList.remove('active'));
+  const map = { auto: 'btnAuto', demo: 'btnDemo', cam: 'btnCam' };
+  const b = document.getElementById(map[m]); if (b) b.classList.add('active');
+  if (m === 'cam') { if (!camReady && !camError) startCamera(); setStatus(camError || '正在打开摄像头…', false); }
+  if (m === 'auto') setStatus('自动演示 · 一人持烛走近，古画显现', false);
+  if (m === 'demo') setStatus('演示模式 · 移动鼠标/手指当作烛光', false);
+  if (m === 'install') { document.body.classList.add('install'); setStatus('', false); }
+}
+function togglePanel(show) {
+  document.getElementById('panel').style.display = show ? 'block' : 'none';
+  if (show) { setStatus('标定中 · 看右侧摄像头画面里的橙色十字', false); }
+}
+document.getElementById('btnAuto').onclick = () => setMode('auto');
+document.getElementById('btnDemo').onclick = () => setMode('demo');
+document.getElementById('btnCam').onclick = () => setMode('cam');
+document.getElementById('btnSetup').onclick = () => togglePanel(document.getElementById('panel').style.display !== 'block');
+document.getElementById('btnInstall').onclick = () => setMode('install');
+document.getElementById('gear').onclick = () => setMode(document.body.classList.contains('install') ? 'auto' : 'install');
+document.getElementById('btnClose').onclick = () => togglePanel(false);
+
+/* 键盘：S 标定 / I 安装 / F 全屏 / Esc 退出安装 */
+window.addEventListener('keydown', e => {
+  if (e.key === 's' || e.key === 'S') { togglePanel(true); }
+  if (e.key === 'i' || e.key === 'I') { setMode('install'); }
+  if (e.key === 'f' || e.key === 'F') {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  }
+  if (e.key === 'Escape' && document.body.classList.contains('install')) setMode('auto');
+});
+
+/* ---------------- 标定滑块 ---------------- */
+const sliders = [
+  ['threshold', 'v_threshold', 0], ['warmThreshold', 'v_warmThreshold', 0], ['smooth', 'v_smooth', 2],
+  ['radius', 'v_radius', 2], ['intensity', 'v_intensity', 2], ['baseDim', 'v_baseDim', 2],
+  ['offsetX', 'v_offsetX', 2], ['offsetY', 'v_offsetY', 2], ['scale', 'v_scale', 2],
+];
+for (const [key, vkey, digits] of sliders) {
+  const el = document.getElementById(key);
+  el.value = cfg[key];
+  document.getElementById(vkey).textContent = fmt(cfg[key], digits);
+  el.addEventListener('input', () => {
+    cfg[key] = parseFloat(el.value);
+    document.getElementById(vkey).textContent = fmt(cfg[key], digits);
+  });
+}
+document.getElementById('mirror').checked = cfg.mirror;
+document.getElementById('mirror').addEventListener('change', e => { cfg.mirror = e.target.checked; });
+document.getElementById('btnSave').onclick = () => {
+  localStorage.setItem('candle-painting-cfg', JSON.stringify(cfg));
+  setStatus('设置已保存', false);
+};
+document.getElementById('btnReset').onclick = () => {
+  cfg = Object.assign({}, DEFAULTS);
+  for (const [key, vkey, digits] of sliders) {
+    document.getElementById(key).value = cfg[key];
+    document.getElementById(vkey).textContent = fmt(cfg[key], digits);
+  }
+  document.getElementById('mirror').checked = cfg.mirror;
+  localStorage.removeItem('candle-painting-cfg');
+  setStatus('已恢复默认', false);
+};
+
+/* ---------------- 启动 ---------------- */
+window.__candle = {
+  setT: v => { autoT = clamp(parseFloat(v) || 0, 0, 1); autoLoop = false; },
+  setMode: m => setMode(m),
+  getState: () => ({ mode, autoT, lights: lights.length, W, H }),
+};
+resize();
+paintingImg = new Image();
+paintingImg.onload = () => {
+  setStatus(mode === 'auto' ? '自动演示 · 一人持烛走近，古画显现' : '古画已加载', false);
+  requestAnimationFrame(frame);
+  detectLoop();
+};
+paintingImg.onerror = () => {
+  paintingImg = drawProceduralFallback();
+  setStatus('古画素材未找到，已使用程序生成的山水画兜底', false);
+  requestAnimationFrame(frame);
+  detectLoop();
+};
+paintingImg.src = paintingSrc.src;
+setMode(mode);
+</script>
+</body>
+</html>
