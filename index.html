@@ -6,11 +6,16 @@
 <title>烛光 · 古画 — 新媒体艺术装置</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23101418'/%3E%3Cellipse cx='32' cy='30' rx='7' ry='13' fill='%23FFB84D'/%3E%3Cellipse cx='32' cy='24' rx='4' ry='7' fill='%23FFF3D6'/%3E%3C/svg%3E">
 <style>
+  /* ============ 基础 ============ */
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #05060a; }
   body { font-family: "Noto Serif SC", "Songti SC", "SimSun", serif; color: #e8e2d8; }
   #app { position: fixed; inset: 0; }
+
+  /* ============ 主舞台 ============ */
   #stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: #000; }
+
+  /* ============ 顶栏 ============ */
   #topbar {
     position: absolute; top: 0; left: 0; right: 0; z-index: 20;
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -31,6 +36,8 @@
   #status { margin-left: auto; font-size: 12px; color: #b8b09e; letter-spacing: 1px; }
   #status .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #555; margin-right: 6px; vertical-align: 1px; }
   #status .dot.on { background: #ffb84d; box-shadow: 0 0 8px #ffb84d; }
+
+  /* ============ 标定面板 ============ */
   #panel {
     position: absolute; right: 16px; top: 58px; bottom: 16px; z-index: 30;
     width: 340px; padding: 14px 16px; overflow-y: auto;
@@ -50,6 +57,8 @@
     color: #ffe6bd; padding: 8px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px;
   }
   #panel .actions button:hover { background: rgba(255,184,77,.25); }
+
+  /* ============ 安装模式小齿轮 ============ */
   #gear {
     position: absolute; right: 12px; bottom: 12px; z-index: 25; display: none;
     width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(232,226,216,.3);
@@ -58,12 +67,15 @@
   body.install #topbar { display: none; }
   body.install #panel { display: none; }
   body.install #gear { display: block; }
+
+  /* ============ 提示 ============ */
   #hint {
     position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); z-index: 20;
     color: rgba(232,226,216,.55); font-size: 12px; letter-spacing: 2px; text-align: center; pointer-events: none;
     text-shadow: 0 1px 6px rgba(0,0,0,.8);
   }
   body.install #hint { display: none; }
+
   @media (max-width: 720px) {
     #panel { width: 100%; right: 0; left: 0; top: auto; bottom: 0; max-height: 55%; border-radius: 12px 12px 0 0; }
     #topbar { padding: 8px 12px; }
@@ -112,12 +124,22 @@
 
   <button id="gear" title="返回设置">⚙</button>
 
+  <!-- 古画素材：必须放在 src 里，浏览器/发布工具才能识别；JS 从这里读取 -->
   <img id="paintingSrc" src="assets/painting.jpg" alt="" style="display:none">
 </div>
 
 <script>
 'use strict';
-/* 烛光 · 古画 — 新媒体艺术装置：摄像头识别烛火 → 映射到屏幕坐标 → 屏幕古画在烛光位置变亮显现 */
+/* =====================================================================
+   烛光 · 古画 — 新媒体艺术装置
+   原理：摄像头识别烛火 → 映射到屏幕坐标 → 屏幕古画在烛光位置变亮显现
+   模式：
+     自动演示（默认）——无需摄像头，演示"一人持烛走近、古画显现"
+     演示模式——鼠标当作蜡烛
+     摄像头模式——真实蜡烛，需要摄像头
+     标定设置——调参数、对坐标
+     安装模式——隐藏所有界面，正式展出
+   ===================================================================== */
 
 /* ---------------- 配置 ---------------- */
 const DEFAULTS = {
@@ -217,6 +239,7 @@ function drawProceduralFallback() {
   c.width = 1568; c.height = 668;
   const g = c.getContext('2d');
   g.fillStyle = '#d8c9a3'; g.fillRect(0, 0, c.width, c.height);
+  // 远山
   for (let i = 0; i < 6; i++) {
     g.beginPath();
     g.fillStyle = 'rgba(90,120,110,' + (0.25 + i * 0.08) + ')';
@@ -227,12 +250,14 @@ function drawProceduralFallback() {
     g.lineTo(c.width, c.height); g.lineTo(0, c.height);
     g.fill();
   }
+  // 近峰
   g.beginPath(); g.fillStyle = '#3c6b57';
   g.moveTo(0, 620);
   for (let x = 0; x <= c.width; x += 16) {
     g.lineTo(x, 620 - 150 - Math.abs(Math.sin(x / 55)) * 130);
   }
   g.lineTo(c.width, c.height); g.lineTo(0, c.height); g.fill();
+  // 水面与雾气
   g.fillStyle = 'rgba(214,202,168,0.75)';
   g.fillRect(0, 470, c.width, 60);
   g.fillStyle = 'rgba(160,180,160,0.5)';
@@ -244,6 +269,8 @@ function drawProceduralFallback() {
 function drawOneLight(p) {
   const R = Math.max(30, p.radius * W * (0.92 + 0.16 * Math.sin(Date.now() / 137) + 0.05 * Math.sin(Date.now() / 61)));
   const I = clamp(p.intensity * cfg.intensity, 0, 1.3);
+
+  // 1) 光照区域 = 全亮古画 抠成圆形光斑
   rctx.clearRect(0, 0, W, H);
   drawPainting(rctx);
   rctx.globalCompositeOperation = 'destination-in';
@@ -254,8 +281,12 @@ function drawOneLight(p) {
   rctx.fillStyle = g;
   rctx.fillRect(0, 0, W, H);
   rctx.globalCompositeOperation = 'source-over';
+
+  // 2) 叠加到主画面（加法混合，多支蜡烛会自然交融）
   ctx.globalCompositeOperation = 'lighter';
   ctx.drawImage(revealCanvas, 0, 0, W, H);
+
+  // 3) 暖色光晕
   const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R * 1.7);
   glow.addColorStop(0, 'rgba(255,190,110,' + fmt(0.16 * I, 3) + ')');
   glow.addColorStop(0.55, 'rgba(255,180,100,' + fmt(0.05 * I, 3) + ')');
@@ -274,14 +305,17 @@ function drawCandleMarker(p) {
   g.addColorStop(1, 'rgba(255,150,50,0)');
   ctx.fillStyle = g;
   ctx.beginPath(); ctx.arc(p.x, p.y - fl * 0.6, fl * 2.2, 0, 7); ctx.fill();
+  // 烛身
   ctx.fillStyle = 'rgba(240,225,190,0.9)';
   ctx.fillRect(p.x - 3, p.y - fl * 0.4, 6, 13);
+  // 烛台
   ctx.fillStyle = 'rgba(160,140,110,0.9)';
   ctx.fillRect(p.x - 8, p.y + 13, 16, 4);
 }
 
 /* ---------------- 粒子光尘 ---------------- */
 function updateParticles(dt) {
+  // 在光源附近生成光尘
   if (lights.length) {
     while (particles.length < cfg.particles) {
       const s = lights[(Math.random() * lights.length) | 0];
@@ -312,6 +346,8 @@ let lastFrame = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - lastFrame) / 1000);
   lastFrame = now;
+
+  // 状态机：计算当前光源
   if (mode === 'auto') {
     const l = autoDemoLight();
     lights = l ? [l] : [];
@@ -326,22 +362,39 @@ function frame(now) {
   } else {
     lights = [];
   }
+
+  // 绘制
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+
+  // 1) 暗色古画底
   ctx.globalAlpha = 1;
   drawPainting(ctx);
+  // 夜晚冷色调叠加
   ctx.fillStyle = 'rgba(6,10,30,' + fmt(1 - cfg.baseDim * 0.75, 3) + ')';
   ctx.fillRect(0, 0, W, H);
+
+  // 2) 烛光显现
   for (const p of lights) drawOneLight(p);
+
+  // 3) 光尘
   if (cfg.particles > 0) updateParticles(dt);
+
+  // 4) 演示/自动模式画蜡烛标记
   if ((mode === 'auto' || mode === 'demo') && lights.length) drawCandleMarker(lights[0]);
+
+  // 5) 暗角
   ctx.drawImage(vignette, 0, 0, W, H);
+
   requestAnimationFrame(frame);
 }
 
-/* 自动演示叙事：t 0.00-0.12 无烛光（昏暗）；0.12-0.82 持烛走近、光随接近变亮；0.82-1.00 古画清晰显现 */
+/* ---------------- 自动演示（一人持烛走近） ----------------
+   演示叙事：t 0.00-0.12 无烛光（画面昏暗）
+             t 0.12-0.82 一人持烛从画面左下走进，烛光随接近而变亮变大
+             t 0.82-1.00 烛光停留在画作前，古画清晰显现          */
 function autoDemoLight() {
   const t = autoT;
-  if (t < 0.12) return null;
+  if (t < 0.12) return null; // 尚未出现，画面保持昏暗
   const tt = easeInOut(clamp((t - 0.12) / 0.7, 0, 1));
   const x = lerp(W * 0.16, W * 0.55, tt);
   const y = lerp(H * 0.92, H * 0.52, tt);
@@ -352,12 +405,12 @@ function autoDemoLight() {
 
 function autoAdvance() {
   if (!autoLoop) return;
-  autoT += 0.0035;
+  autoT += 0.0035;              // 每 40ms 走 0.0035，一个完整叙事约 11 秒
   if (autoT > 1) autoT = 0;
 }
 setInterval(autoAdvance, 40);
 
-/* 演示模式：鼠标/触摸 */
+/* ---------------- 演示模式：鼠标 ---------------- */
 stage.addEventListener('mousemove', e => {
   mouseLight = { x: e.clientX, y: e.clientY };
 });
@@ -370,7 +423,7 @@ stage.addEventListener('touchmove', e => {
 /* ---------------- 摄像头模式：烛火检测 ---------------- */
 const detCanvas = document.createElement('canvas');
 const detCtx = detCanvas.getContext('2d', { willReadFrequently: true });
-const detW = 160;
+const detW = 160;               // 检测分辨率（小图跑得快）
 let video = null, camReady = false, camError = null;
 
 const camView = document.getElementById('camView');
@@ -411,15 +464,12 @@ function detectFlames() {
 
   const comps = [];
   let cur = 0;
-  function isFlame(idx, d) {
-    const r = d[idx * 4], g = d[idx * 4 + 1], b = d[idx * 4 + 2];
-    return (0.299 * r + 0.587 * g + 0.114 * b) >= cfg.threshold && (r - b) >= cfg.warmThreshold;
-  }
   for (let p = 0; p < n; p++) {
     const r = data[p * 4], g = data[p * 4 + 1], b = data[p * 4 + 2];
     const bright = 0.299 * r + 0.587 * g + 0.114 * b;
     const warm = r - b;
     if (bright < cfg.threshold || warm < cfg.warmThreshold || label[p] !== -1) continue;
+    // BFS 连通域
     const stack = [p];
     label[p] = cur;
     let area = 0, sx = 0, sy = 0, maxB = 0;
@@ -440,6 +490,12 @@ function detectFlames() {
     }
     cur++;
   }
+  function isFlame(idx, d) {
+    const r = d[idx * 4], g = d[idx * 4 + 1], b = d[idx * 4 + 2];
+    return (0.299 * r + 0.587 * g + 0.114 * b) >= cfg.threshold && (r - b) >= cfg.warmThreshold;
+  }
+
+  // 按面积取前 2 个最大光斑
   comps.sort((a, b) => b.area - a.area);
   return comps.slice(0, 2);
 }
@@ -456,6 +512,7 @@ function mapLights(flames) {
     const radius = cfg.radius * (1 + 0.05 * Math.sin(Date.now() / 130));
     next.push({ x: nx * W, y: ny * H, intensity, radius });
   }
+  // 平滑：每个新点去找最近的旧点做 EMA
   const out = [];
   for (const n of next) {
     let best = null, bestD = Infinity;
@@ -493,6 +550,7 @@ function drawCamView(flames) {
   if (cfg.mirror) { camViewCtx.save(); camViewCtx.translate(cw, 0); camViewCtx.scale(-1, 1); }
   camViewCtx.drawImage(video, dx, dy, dw, dh);
   if (cfg.mirror) camViewCtx.restore();
+  // 标注烛火
   camViewCtx.strokeStyle = '#ffb84d'; camViewCtx.lineWidth = 2;
   for (const f of flames) {
     const px = cfg.mirror ? (cw - (f.cx / detW) * dw - dx) : (f.cx / detW) * dw + dx;
@@ -576,6 +634,7 @@ document.getElementById('btnReset').onclick = () => {
 };
 
 /* ---------------- 启动 ---------------- */
+/* 调试钩子：自动化测试/录制动图时用（正式展出无影响） */
 window.__candle = {
   setT: v => { autoT = clamp(parseFloat(v) || 0, 0, 1); autoLoop = false; },
   setMode: m => setMode(m),
